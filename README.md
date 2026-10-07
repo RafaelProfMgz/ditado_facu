@@ -77,7 +77,9 @@ curl -s localhost:5173/api/health            # {"status":"ok","db":"up"}
 
 ## Grupo
 
-- _preencher_
+- Angel Rafael Souza Da Silva
+- Nicolas Veiga
+- Janaína Lima Viana
 
 ## Declaração de uso de IA
 
