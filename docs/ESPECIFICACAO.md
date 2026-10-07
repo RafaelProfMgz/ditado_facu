@@ -31,14 +31,14 @@ Três camadas e um serviço externo, todas no ambiente de desenvolvimento:
 | Camada | Programa | Porta |
 |---|---|---|
 | Frontend | React + Vite (executado no navegador) | 5173 |
-| Backend | NestJS | 3001 (3000 é usada por outro projeto nesta máquina) |
+| Backend | NestJS | 3333 (3000 e 3001 são usadas por outros projetos nesta máquina) |
 | Banco | PostgreSQL 17 em contêiner | 127.0.0.1:5433 (5432 já é usada por outro projeto nesta máquina) |
 | Externo | Groq (Whisper) | HTTPS |
 
 Regras de arquitetura:
 
 - O frontend chama **apenas** o caminho relativo `/api`. O proxy do Vite repassa para
-  `http://localhost:3001`. É proibido endereço absoluto (`http://localhost:3001`) no frontend.
+  `http://localhost:3333`. É proibido endereço absoluto (`http://localhost:3333`) no frontend.
 - O frontend não tem segredo nem arquivo `.env`. Toda credencial fica em `backend/.env`.
 - Só o backend chama a Groq.
 - O banco é publicado apenas em `127.0.0.1` (nunca `0.0.0.0`).
@@ -144,7 +144,10 @@ Prefixo global `/api`. Corpo JSON em todas as rotas, exceto o envio de áudio
   Consequência: `{ ..., "role": "admin" }` no cadastro é **recusado com 400**.
 - `:id` validado com `ParseUUIDPipe` → 400 se não for uuid.
 - Áudio: campo `file`; tipos aceitos `mp3, m4a, wav, ogg, webm, flac, mp4, mpeg`
-  (verificar extensão **e** mimetype `audio/*` ou `video/mp4`/`video/webm`), senão 400.
+  (verificar extensão, mimetype `audio/*`, `video/mp4|webm|mpeg`, `application/ogg` ou
+  `application/octet-stream` — o curl envia este último — **e a assinatura binária** do
+  conteúdo: ID3/quadro MPEG, RIFF/WAVE, OggS, fLaC, ftyp, EBML), senão 400.
+  Um arquivo de texto renomeado para `.mp3` é recusado com 400.
   Tamanho máx. `MAX_UPLOAD_MB` (padrão 25) → 413 acima disso.
 - Falha ou timeout (60 s) na Groq → 502 com mensagem genérica; o detalhe vai só para o log.
   Nada é gravado quando a Groq falha.
@@ -206,7 +209,7 @@ Comportamento comum:
 
 | Variável | Exemplo | Uso |
 |---|---|---|
-| `PORT` | `3001` | porta do NestJS |
+| `PORT` | `3333` | porta do NestJS |
 | `DATABASE_HOST` | `localhost` | |
 | `DATABASE_PORT` | `5433` | |
 | `DATABASE_USER` | `ditado` | |
@@ -245,7 +248,7 @@ ditado/
 │       ├── users/                ← dto/, entities/, controller, service, module, admin-seed
 │       └── transcriptions/       ← dto/, entities/, controller, service, module, groq.service.ts
 └── frontend/
-    ├── vite.config.ts            ← proxy /api → http://localhost:3001
+    ├── vite.config.ts            ← proxy /api → http://localhost:3333
     └── src/
         ├── main.tsx · App.tsx
         ├── pages/
@@ -283,7 +286,7 @@ Projeto NestJS em `backend/`, `ConfigModule` com validação, TypeORM conectado,
 Aceite:
 ```bash
 cd backend && npm run build                                  # sem erros
-curl -s localhost:3001/api/health                            # {"status":"ok","db":"up"}
+curl -s localhost:3333/api/health                            # {"status":"ok","db":"up"}
 JWT_SECRET= npm run start                                    # falha com mensagem clara
 ```
 
@@ -293,15 +296,15 @@ Entidade `User`, cadastro, login, `/auth/me`, `JwtStrategy`, `JwtAuthGuard`, `@C
 
 Aceite:
 ```bash
-curl -s -XPOST localhost:3001/api/auth/register -H 'Content-Type: application/json' \
+curl -s -XPOST localhost:3333/api/auth/register -H 'Content-Type: application/json' \
   -d '{"name":"Ana","email":"ana@teste.dev","password":"segredo123"}'   # 201, sem passwordHash
 # repetir o mesmo                                                       → 409
-curl -s -o /dev/null -w '%{http_code}\n' -XPOST localhost:3001/api/auth/register \
+curl -s -o /dev/null -w '%{http_code}\n' -XPOST localhost:3333/api/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"name":"Eva","email":"eva@teste.dev","password":"segredo123","role":"admin"}'  # 400
 # login com senha errada → 401; login correto → 200 com accessToken
-curl -s localhost:3001/api/auth/me -H "Authorization: Bearer $TOKEN"     # 200, sem passwordHash
-curl -s -o /dev/null -w '%{http_code}\n' localhost:3001/api/auth/me     # 401
+curl -s localhost:3333/api/auth/me -H "Authorization: Bearer $TOKEN"     # 200, sem passwordHash
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3333/api/auth/me     # 401
 docker compose exec db psql -U ditado -c 'select email, role, left("passwordHash",4) from users;'
 # hashes começam com $2a$/$2b$; admin@ditado.dev existe com role admin
 ```
@@ -311,10 +314,10 @@ Entidade `Transcription`, `GroqService`, CRUD do dono, limites de upload.
 
 Aceite:
 ```bash
-curl -s -XPOST localhost:3001/api/transcriptions -H "Authorization: Bearer $TOKEN" \
+curl -s -XPOST localhost:3333/api/transcriptions -H "Authorization: Bearer $TOKEN" \
   -F file=@teste.m4a -F language=pt                         # 201 com texto coerente
-curl -s localhost:3001/api/transcriptions -H "Authorization: Bearer $TOKEN"   # lista paginada
-curl -s -o /dev/null -w '%{http_code}\n' -XPOST localhost:3001/api/transcriptions \
+curl -s localhost:3333/api/transcriptions -H "Authorization: Bearer $TOKEN"   # lista paginada
+curl -s -o /dev/null -w '%{http_code}\n' -XPOST localhost:3333/api/transcriptions \
   -H "Authorization: Bearer $TOKEN" -F file=@README.md        # 400
 head -c 26M /dev/urandom > /tmp/grande.mp3; curl ... -F file=@/tmp/grande.mp3   # 413
 # GROQ_API_KEY inválida no .env → 502 e nenhuma linha nova em transcriptions
@@ -322,9 +325,9 @@ head -c 26M /dev/urandom > /tmp/grande.mp3; curl ... -F file=@/tmp/grande.mp3   
 **Teste de controle de acesso por dono** (obrigatório):
 ```bash
 # Ana cria transcrição $ID. Bia se cadastra e obtém $TOKEN_BIA.
-curl -s -o /dev/null -w '%{http_code}\n' localhost:3001/api/transcriptions/$ID \
+curl -s -o /dev/null -w '%{http_code}\n' localhost:3333/api/transcriptions/$ID \
   -H "Authorization: Bearer $TOKEN_BIA"                       # 404
-curl -s -o /dev/null -w '%{http_code}\n' -XDELETE localhost:3001/api/transcriptions/$ID \
+curl -s -o /dev/null -w '%{http_code}\n' -XDELETE localhost:3333/api/transcriptions/$ID \
   -H "Authorization: Bearer $TOKEN_BIA"                       # 404, e a de Ana continua existindo
 ```
 
@@ -339,7 +342,7 @@ admin tenta se rebaixar → 400; exclusão de usuário remove as transcrições 
 Vite + React + TS + Tailwind v4, proxy, `api.ts`, `authStore`, rotas, landing, entrar, cadastrar,
 layout interno, rotas protegidas.
 
-Aceite: `npm run build` sem erros; `grep -rn "localhost:3001" frontend/src` não retorna nada;
+Aceite: `npm run build` sem erros; `grep -rn "localhost:3333" frontend/src` não retorna nada;
 cadastro e login pelo navegador levam a `/app`; recarregar mantém o login; `/app` sem sessão
 vai para `/entrar`; na aba Rede, requisições vão para `localhost:5173/api/...` com `Authorization`.
 
@@ -359,9 +362,9 @@ ativar/desativar e promover refletem na tabela sem recarregar.
 ### Etapa 8 — Scripts e documentação
 `start.sh`, `stop.sh`, README final.
 
-Aceite: em clone limpo, seguindo apenas o README (`cp backend/.env.example backend/.env`,
+Aceite: `./start.sh` com a aplicação já no ar recusa e indica a porta ocupada; em clone limpo, seguindo apenas o README (`cp backend/.env.example backend/.env`,
 preencher, `./start.sh`), a aplicação abre em `http://localhost:5173`; `./stop.sh` encerra
-os processos (`lsof -i :3001` e `lsof -i :5173` vazios).
+os processos (`lsof -i :3333` e `lsof -i :5173` vazios, sem processo residual).
 
 ## 10. Checklist de revisão (a cada etapa de backend)
 

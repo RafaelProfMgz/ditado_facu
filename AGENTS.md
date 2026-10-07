@@ -19,7 +19,7 @@ Banco em contêiner via `docker-compose.yml` na raiz. Node >= 22.12.
 ## Comandos
 ```bash
 docker compose up -d                       # banco
-cd backend  && npm run start:dev           # API em :3001
+cd backend  && npm run start:dev           # API em :3333
 cd frontend && npm run dev                 # interface em :5173
 ./start.sh / ./stop.sh                     # tudo de uma vez (após etapa 8)
 cd backend  && npm run build && npm run lint
@@ -45,7 +45,7 @@ cd frontend && npm run build && npm run lint
 - Nunca devolva `passwordHash` em resposta. Nunca aceite `role` no cadastro.
 - Nunca busque transcrição só por `id`: sempre `{ id, userId }` do token.
 - Nunca importe `Repository` num controller.
-- Nunca use endereço absoluto (`http://localhost:3001`) no frontend; use `/api`.
+- Nunca use endereço absoluto (`http://localhost:3333`) no frontend; use `/api`.
 - Nunca crie `.env` no frontend nem chame a Groq a partir do frontend.
 - Nunca publique a porta do banco sem `127.0.0.1:`.
 - Nunca adicione dependência fora da pilha da especificação sem perguntar.
