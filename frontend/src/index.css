@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+
+  --color-paper: #fdf8f1;
+  --color-ink: #1f1a17;
+  --color-muted: #6b625b;
+  --color-line: #e7ddd0;
+  --color-accent: #b4532a;
+  --color-accent-dark: #8f3f1e;
+  --color-accent-soft: #f6e4d8;
+}
+
+body {
+  @apply bg-paper font-sans text-ink antialiased;
+}
