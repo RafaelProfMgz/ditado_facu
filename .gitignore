@@ -1,0 +1,32 @@
+# dependências e build
+node_modules/
+dist/
+build/
+coverage/
+
+# segredos
+.env
+.env.*
+!.env.example
+
+# logs e processos
+logs/
+*.log
+.pids/
+*.pid
+
+# editor / SO
+.DS_Store
+.vscode/
+.idea/
+
+# áudios de teste
+*.m4a
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.webm
+
+# entrega
+*.zip
