@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileAudio, UploadCloud, X } from 'lucide-react';
+import { FileAudio, Mic, Square, UploadCloud, X } from 'lucide-react';
 import { useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
@@ -25,6 +25,12 @@ export function TranscribePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
   const mutation = useMutation({
     mutationFn: () => createTranscription(file!, language),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transcriptions'] }),
@@ -45,6 +51,46 @@ export function TranscribePage() {
     e.preventDefault();
     setDragging(false);
     pick(e.dataTransfer.files[0]);
+  }
+
+  async function startRecording() {
+    mutation.reset();
+    setLocalError(null);
+    setRecordingError(null);
+    setIsRecording(true);
+    chunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const recordedFile = new File([blob], 'gravacao.microfone.webm', { type: 'audio/webm', lastModified: Date.now() });
+        setFile(recordedFile);
+        setIsRecording(false);
+        mediaRecorderRef.current = null;
+      };
+      mediaRecorder.start();
+    } catch {
+      setRecordingError('Não foi possível acessar o microfone. Verifique a permissão do navegador.');
+      setIsRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    const mediaRecorder = mediaRecorderRef.current;
+    const stream = streamRef.current;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+    }
+    streamRef.current = null;
   }
 
   function submit(e: FormEvent) {
@@ -105,6 +151,20 @@ export function TranscribePage() {
               </button>
             </div>
           )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            {!isRecording ? (
+              <Button type="button" onClick={startRecording} variant="secondary" className="gap-2">
+                <Mic className="size-4" /> Falar no microfone
+              </Button>
+            ) : (
+              <Button type="button" onClick={stopRecording} variant="danger" className="gap-2 animate-pulse">
+                <Square className="size-4" /> Parar gravação
+              </Button>
+            )}
+          </div>
+
+          {recordingError && <Alert>{recordingError}</Alert>}
 
           {localError && <Alert>{localError}</Alert>}
           {mutation.isError && <Alert>{getErrorMessage(mutation.error)}</Alert>}
