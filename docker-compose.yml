@@ -10,5 +10,24 @@ services:
     volumes:
       - dados:/var/lib/postgresql/data
 
+  backend:
+    build: ./backend
+    ports:
+      - "3333:3333"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   dados:

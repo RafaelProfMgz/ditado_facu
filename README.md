@@ -6,6 +6,24 @@ que fica salvo num histórico pessoal. Um administrador gerencia as contas.
 React + Vite (frontend) · NestJS + TypeORM (backend) · PostgreSQL (banco) · Groq Whisper (transcrição).
 Especificação completa em [`docs/ESPECIFICACAO.md`](docs/ESPECIFICACAO.md); regras para o agente em [`AGENTS.md`](AGENTS.md).
 
+## Configuração do Docker (lazydocker + VS Code)
+
+Seu usuário precisa estar no grupo `docker` para acessar o socket sem `sudo` e para que `lazydocker` e a extensão Docker do VS Code apareçam:
+
+```bash
+usermod -aG docker $USER   # permanente; depois faça login/logout
+newgrp docker              # aplica agora sem sair da sessão
+```
+
+Verifique:
+
+```bash
+docker ps                  # deve listar containers
+lazydocker                 # interface visual dos containers
+```
+
+> **VS Code:** feche e abra novamente **depois** de aplicar `newgrp docker` (ou após login/logout) para que a extensão Docker veja os containers.
+
 ## Requisitos
 
 - Node **22.12 ou superior** e npm
@@ -23,6 +41,7 @@ cp backend/.env.example backend/.env
 #   GROQ_API_KEY   → sua chave gsk_...
 #   ADMIN_PASSWORD → senha do admin inicial (mínimo 8 caracteres)
 
+newgrp docker        # aplica o grupo agora; depois pode usar lazydocker / VS Code
 ./start.sh        # instala dependências na 1ª vez, sobe banco, backend e frontend
 ```
 
@@ -33,6 +52,10 @@ Abra <http://localhost:5173>. Entre como admin com `ADMIN_EMAIL` / `ADMIN_PASSWO
 ./stop.sh         # encerra backend e frontend
 ./stop.sh --all   # também para o banco (os dados ficam no volume)
 ```
+
+> **Não misture modos:** `./start.sh` sobe apenas o banco no Docker e rodando backend/frontend nativos (Node). Se quiser tudo em container (`docker compose up -d`), pare primeiro com `./stop.sh --all` ou `docker compose down` para evitar conflito de portas.
+>
+> Para ver os containers visualmente: `lazydocker` (depois de `newgrp docker`).
 
 Logs de cada processo: `logs/backend.log` e `logs/frontend.log`.
 
@@ -45,6 +68,19 @@ docker compose up -d                       # na raiz
 cd backend;  npm install; npm run start:dev   # terminal 1
 cd frontend; npm install; npm run dev         # terminal 2
 ```
+
+### Modo container (tudo no Docker)
+
+Se preferir rodar backend, frontend e banco todos como containers (sem `npm` nativo):
+
+```bash
+newgrp docker
+docker compose up -d       # sobe db, backend (3333) e frontend (5173)
+docker compose logs -f     # acompanhar
+lazydocker                # interface visual
+```
+
+> **Atenção:** não rode `./start.sh` ao mesmo tempo que `docker compose up -d`; eles disputam as portas 3333 e 5173. Se precisar trocar de modo, pare tudo (`./stop.sh --all` ou `docker compose down`) antes.
 
 ## Portas
 
@@ -64,6 +100,8 @@ cd backend  && npm run build && npm run lint
 cd frontend && npm run build && npm run lint
 docker compose exec db psql -U ditado        # console do banco
 curl -s localhost:5173/api/health            # {"status":"ok","db":"up"}
+newgrp docker                               # aplica grupo sem sair
+lazydocker                                  # interface visual dos containers
 ```
 
 ## Problemas comuns
@@ -74,6 +112,7 @@ curl -s localhost:5173/api/health            # {"status":"ok","db":"up"}
 | `A porta 3333 já está em uso` | `./stop.sh`; se persistir, `lsof -i :3333` |
 | `port is already allocated` no Docker | outro contêiner usa a 5433; veja `docker ps` |
 | "Serviço de transcrição indisponível" | chave da Groq inválida ou Groq fora do ar; detalhe em `logs/backend.log` |
+| `lazydocker` vazio / VS Code não mostra containers | usuário sem grupo `docker`; rode `newgrp docker` (ou `usermod`) e reinicie o VS Code |
 
 ## Grupo
 
