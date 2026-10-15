@@ -1,5 +1,7 @@
 # Ditado
 
+INTEGRANTES: Angel Rafael Souza da Silva, Nicolas Veiga , Janaína Lima Viana
+
 Aplicação web de transcrição de áudio: o usuário envia um arquivo e recebe o texto,
 que fica salvo num histórico pessoal. Um administrador gerencia as contas.
 
@@ -84,11 +86,11 @@ lazydocker                # interface visual
 
 ## Portas
 
-| Processo | Porta | Observação |
-|---|---|---|
-| Vite (frontend) | 5173 | única porta que o navegador usa; `/api` é repassado ao backend |
-| NestJS (backend) | 3333 | `PORT` no `.env`. Não é a 3000 porque 3000 e 3001 já eram usadas por outros projetos na máquina de desenvolvimento |
-| PostgreSQL | 127.0.0.1:5433 → 5432 | só acessível da própria máquina. Não é a 5432 pelo mesmo motivo |
+| Processo         | Porta                 | Observação                                                                                                         |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Vite (frontend)  | 5173                  | única porta que o navegador usa; `/api` é repassado ao backend                                                     |
+| NestJS (backend) | 3333                  | `PORT` no `.env`. Não é a 3000 porque 3000 e 3001 já eram usadas por outros projetos na máquina de desenvolvimento |
+| PostgreSQL       | 127.0.0.1:5433 → 5432 | só acessível da própria máquina. Não é a 5432 pelo mesmo motivo                                                    |
 
 Para usar outras portas: `PORT` em `backend/.env` + alvo do proxy em `frontend/vite.config.ts`;
 banco: mapeamento em `docker-compose.yml` + `DATABASE_PORT` no `.env`.
@@ -106,12 +108,12 @@ lazydocker                                  # interface visual dos containers
 
 ## Problemas comuns
 
-| Sintoma | Causa / solução |
-|---|---|
-| `Variáveis obrigatórias ausentes em backend/.env` | preencha `JWT_SECRET` e `GROQ_API_KEY` |
-| `A porta 3333 já está em uso` | `./stop.sh`; se persistir, `lsof -i :3333` |
-| `port is already allocated` no Docker | outro contêiner usa a 5433; veja `docker ps` |
-| "Serviço de transcrição indisponível" | chave da Groq inválida ou Groq fora do ar; detalhe em `logs/backend.log` |
+| Sintoma                                            | Causa / solução                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `Variáveis obrigatórias ausentes em backend/.env`  | preencha `JWT_SECRET` e `GROQ_API_KEY`                                               |
+| `A porta 3333 já está em uso`                      | `./stop.sh`; se persistir, `lsof -i :3333`                                           |
+| `port is already allocated` no Docker              | outro contêiner usa a 5433; veja `docker ps`                                         |
+| "Serviço de transcrição indisponível"              | chave da Groq inválida ou Groq fora do ar; detalhe em `logs/backend.log`             |
 | `lazydocker` vazio / VS Code não mostra containers | usuário sem grupo `docker`; rode `newgrp docker` (ou `usermod`) e reinicie o VS Code |
 
 ## Grupo
@@ -122,11 +124,11 @@ lazydocker                                  # interface visual dos containers
 
 ## Declaração de uso de IA
 
-| Etapa | Ferramenta / modelo | Uso |
-|---|---|---|
-| Especificação (`docs/ESPECIFICACAO.md`) e `AGENTS.md` | Claude Code — Claude Opus 5.5 | Redação a partir da descrição da Aula 07; revisada pelo grupo |
-| Etapas 0–8 (backend, frontend, scripts) | Claude Code — Claude Opus 5.5 | Geração do código, etapa por etapa, seguindo a especificação |
-| Verificação | Claude Code — Claude Opus 5.5 + grupo | Comandos de aceite com `curl` (etapas 1–4) e teste no navegador com Chrome automatizado (etapas 5–7); repetidos pelo grupo no próprio terminal |
-| Revisão | Claude Code — Claude Opus 5.5 + grupo | Checklist da seção 10 da especificação (senha nunca na resposta, `role` recusado no cadastro, filtro por dono, controller sem `Repository`, guards de admin, nenhum segredo versionado) |
+| Etapa                                                 | Ferramenta / modelo                   | Uso                                                                                                                                                                                     |
+| ----------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Especificação (`docs/ESPECIFICACAO.md`) e `AGENTS.md` | Claude Code — Claude Opus 5.5         | Redação a partir da descrição da Aula 07; revisada pelo grupo                                                                                                                           |
+| Etapas 0–8 (backend, frontend, scripts)               | Claude Code — Claude Opus 5.5         | Geração do código, etapa por etapa, seguindo a especificação                                                                                                                            |
+| Verificação                                           | Claude Code — Claude Opus 5.5 + grupo | Comandos de aceite com `curl` (etapas 1–4) e teste no navegador com Chrome automatizado (etapas 5–7); repetidos pelo grupo no próprio terminal                                          |
+| Revisão                                               | Claude Code — Claude Opus 5.5 + grupo | Checklist da seção 10 da especificação (senha nunca na resposta, `role` recusado no cadastro, filtro por dono, controller sem `Repository`, guards de admin, nenhum segredo versionado) |
 
 Transcrição de áudio feita pelo modelo `whisper-large-v3-turbo`, na API da Groq.
